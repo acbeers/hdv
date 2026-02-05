@@ -100,12 +100,19 @@ class HDVApp(App[None]):
                 table.move_cursor(row=0, column=0)
             except Exception:
                 pass
-        # Update breadcrumb
+        # Update breadcrumb with drill path and current total
+        agg_cols = self.numeric_columns if self.numeric_columns else ["count"]
+        totals = {c: 0.0 for c in agg_cols}
+        for _, sums in rows:
+            for c in agg_cols:
+                totals[c] = totals.get(c, 0) + sums.get(c, 0)
+        total_str = " | ".join(
+            f"{c}: {t:.0f}" if t == int(t) else f"{c}: {t}"
+            for c, t in totals.items()
+        )
+        path_str = " / ".join(self.path) if self.path else "(top level)"
         bc = self.query_one("#breadcrumb", Static)
-        if self.path:
-            bc.update(" / ".join(self.path))
-        else:
-            bc.update("(top level)")
+        bc.update(f"{path_str}  —  {total_str}")
 
     def _get_selected_dim_value(self) -> str | None:
         table = self.query_one(HDVDataTable)
