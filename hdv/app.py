@@ -32,6 +32,7 @@ class HDVApp(App[None]):
     CSS_PATH = "app.css"
     BINDINGS = [
         Binding("q", "quit", "Quit"),
+        Binding("s", "sort_toggle", "Sort", show=True),
         Binding("left", "back", "Back", show=True),
         Binding("right", "expand", "Expand", show=True),
     ]
@@ -52,6 +53,7 @@ class HDVApp(App[None]):
         self.dimension_columns: list[str] = []
         self.numeric_columns: list[str] = []
         self.path: list[str] = []  # current drill-down path (value per level)
+        self.sort_by_numeric: bool = False  # False = by dimension label, True = by numeric column
 
     def on_mount(self) -> None:
         try:
@@ -69,6 +71,7 @@ class HDVApp(App[None]):
     def _refresh_table(self) -> None:
         table = self.query_one(HDVDataTable)
         table.clear(columns=True)
+        self._current_rows = []
         level = len(self.path)
         if level >= len(self.dimension_columns):
             return
@@ -79,6 +82,13 @@ class HDVApp(App[None]):
         rows = aggregate_level(
             self.df, self.dimension_columns, self.numeric_columns, self.path
         )
+        # Sort: by dimension label or by first numeric column
+        if self.sort_by_numeric and agg_columns:
+            key_col = agg_columns[0]
+            rows = sorted(rows, key=lambda r: r[1].get(key_col, 0), reverse=True)
+        else:
+            rows = sorted(rows, key=lambda r: (r[0] or ""))
+        self._current_rows = rows  # ordered as displayed (for selection)
         for i, (label, sums) in enumerate(rows):
             num_vals = []
             for c in agg_columns:
@@ -104,13 +114,15 @@ class HDVApp(App[None]):
         cursor_row = table.cursor_row
         if cursor_row is None or cursor_row < 0:
             return None
-        level = len(self.path)
-        rows = aggregate_level(
-            self.df, self.dimension_columns, self.numeric_columns, self.path
-        )
+        rows = getattr(self, "_current_rows", [])
         if cursor_row >= len(rows):
             return None
         return rows[cursor_row][0]
+
+    def action_sort_toggle(self) -> None:
+        """Switch between sorting by dimension column and by numeric column."""
+        self.sort_by_numeric = not self.sort_by_numeric
+        self._refresh_table()
 
     def action_back(self) -> None:
         if not self.path:
