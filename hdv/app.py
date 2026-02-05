@@ -120,7 +120,8 @@ class HDVApp(App[None]):
 
     def action_expand(self) -> None:
         level = len(self.path)
-        if level >= len(self.dimension_columns):
+        # Can't expand when already at the last dimension (no further levels)
+        if level >= len(self.dimension_columns) - 1:
             return
         val = self._get_selected_dim_value()
         if val is None:
