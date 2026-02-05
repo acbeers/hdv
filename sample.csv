@@ -1,0 +1,7 @@
+region,department,product,revenue,units
+North,Sales,Widget A,1000,10
+North,Sales,Widget B,1500,15
+North,Support,Widget A,200,2
+South,Sales,Widget A,800,8
+South,Sales,Widget B,1200,12
+South,Support,Widget A,150,1
