@@ -187,7 +187,9 @@ class HDVApp(App[None]):
     def action_expand(self) -> None:
         level = len(self.path)
         # Can't expand when already at the last dimension (no further levels)
+        # In that case, Right should move to the next column instead
         if level >= len(self.dimension_columns) - 1:
+            self.query_one(HDVDataTable).run_action("cursor_right")
             return
         val = self._get_selected_dim_value()
         if val is None:
