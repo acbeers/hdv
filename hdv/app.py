@@ -21,6 +21,8 @@ class HDVDataTable(DataTable):
     ] + [
         Binding("left", "back", "Back", show=False),
         Binding("right", "expand", "Expand", show=False),
+        Binding("space", "page_down", "Page down", show=False),
+        Binding("b", "page_up", "Page up", show=False),
     ]
 
 
@@ -35,6 +37,8 @@ class HDVApp(App[None]):
         Binding("s", "sort_toggle", "Sort", show=True),
         Binding("left", "back", "Back", show=True),
         Binding("right", "expand", "Expand", show=True),
+        Binding("b", "scroll_page_back", "Page up", show=False),
+        Binding("space", "scroll_page_forward", "Page down", show=False),
     ]
 
     def __init__(
@@ -165,6 +169,14 @@ class HDVApp(App[None]):
         """Switch between sorting by dimension column and by numeric column."""
         self.sort_by_numeric = not self.sort_by_numeric
         self._refresh_table()
+
+    def action_scroll_page_forward(self) -> None:
+        """Scroll the table list down by a page (space)."""
+        self.query_one(HDVDataTable).run_action("page_down")
+
+    def action_scroll_page_back(self) -> None:
+        """Scroll the table list up by a page (b)."""
+        self.query_one(HDVDataTable).run_action("page_up")
 
     def action_back(self) -> None:
         if not self.path:
