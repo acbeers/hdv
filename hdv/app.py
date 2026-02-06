@@ -41,6 +41,7 @@ class HDVApp(App[None]):
         self,
         source: str | Path | IO[str],
         source_name: str | None = None,
+        path_column: str | None = None,
         *args,
         **kwargs,
     ):
@@ -49,6 +50,7 @@ class HDVApp(App[None]):
         self.source_name = source_name or (
             str(source) if not hasattr(source, "read") else "<stdin>"
         )
+        self.path_column = path_column
         self.df = None
         self.dimension_columns: list[str] = []
         self.numeric_columns: list[str] = []
@@ -58,7 +60,7 @@ class HDVApp(App[None]):
     def on_mount(self) -> None:
         try:
             self.df, self.dimension_columns, self.numeric_columns = load_and_classify(
-                self.source
+                self.source, path_column=self.path_column
             )
         except Exception as e:
             self.notify(f"Failed to load CSV: {e}", severity="error")
@@ -110,9 +112,32 @@ class HDVApp(App[None]):
             f"{c}: {t:.0f}" if t == int(t) else f"{c}: {t}"
             for c, t in totals.items()
         )
-        path_str = " / ".join(self.path) if self.path else "(top level)"
+        path_str = self._breadcrumb_path_str()
         bc = self.query_one("#breadcrumb", Static)
         bc.update(f"{path_str}  —  {total_str}")
+
+    def _breadcrumb_path_str(self) -> str:
+        """Format current drill path for breadcrumb, collapsing path-segment levels to avoid repetition."""
+        if not self.path:
+            return "(top level)"
+        if not self.path_column:
+            return " / ".join(self.path)
+        parts: list[str] = []
+        i = 0
+        while i < len(self.path):
+            dim = self.dimension_columns[i]
+            if dim.startswith(self.path_column + "_"):
+                j = i
+                while j < len(self.path) and self.dimension_columns[j].startswith(
+                    self.path_column + "_"
+                ):
+                    j += 1
+                parts.append(self.path[j - 1])
+                i = j
+            else:
+                parts.append(self.path[i])
+                i += 1
+        return " / ".join(parts)
 
     def _get_selected_dim_value(self) -> str | None:
         table = self.query_one(HDVDataTable)

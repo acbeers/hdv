@@ -8,10 +8,57 @@ from typing import IO
 import pandas as pd
 
 
+def _expand_path_column(
+    df: pd.DataFrame,
+    path_column: str,
+    dimension_columns: list[str],
+) -> tuple[pd.DataFrame, list[str]]:
+    """Expand a slash-separated path column into path_0, path_1, ... path_{depth-1}.
+    path_i is the prefix with i+1 segments (e.g. 'a', 'a/b', 'a/b/c').
+    Returns (df with new columns, new dimension_columns with path levels in place of path_column).
+    """
+    if path_column not in dimension_columns:
+        return df, dimension_columns
+    # Max depth = max number of segments in any cell
+    def segments(s: str) -> list[str]:
+        return [x for x in str(s).strip("/").split("/") if x]
+
+    depths = df[path_column].apply(lambda s: len(segments(s)))
+    max_depth = int(depths.max()) if len(depths) else 0
+    if max_depth == 0:
+        # Path column is empty everywhere; one level with empty string
+        max_depth = 1
+    new_cols: list[str] = []
+    for i in range(max_depth):
+        def prefix(j: int):
+            def get_prefix(val):
+                segs = segments(val)
+                if j >= len(segs):
+                    return "/".join(segs) if segs else ""
+                return "/".join(segs[: j + 1])
+
+            return get_prefix
+
+        col_name = f"{path_column}_{i}"
+        df[col_name] = df[path_column].apply(prefix(i))
+        new_cols.append(col_name)
+    # Replace path_column with path_0, path_1, ... in dimension order
+    new_dims: list[str] = []
+    for c in dimension_columns:
+        if c == path_column:
+            new_dims.extend(new_cols)
+        else:
+            new_dims.append(c)
+    return df, new_dims
+
+
 def load_and_classify(
     source: str | Path | IO[str],
+    path_column: str | None = None,
 ) -> tuple[pd.DataFrame, list[str], list[str]]:
-    """Load CSV from path or file-like and return (df, dimension_columns, numeric_columns)."""
+    """Load CSV from path or file-like and return (df, dimension_columns, numeric_columns).
+    If path_column is set, that column is expanded into segment levels (path_0, path_1, ...).
+    """
     df = pd.read_csv(source)
     numeric_columns: list[str] = []
     for col in df.columns:
@@ -21,6 +68,10 @@ def load_and_classify(
             numeric_columns.append(col)
     # Dimensions = non-numeric, in original column order
     dimension_columns = [c for c in df.columns if c not in numeric_columns]
+    if path_column:
+        if path_column not in df.columns:
+            raise ValueError(f"Path column {path_column!r} not found in CSV columns: {list(df.columns)}")
+        df, dimension_columns = _expand_path_column(df, path_column, dimension_columns)
     return df, dimension_columns, numeric_columns
 
 

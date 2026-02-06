@@ -24,6 +24,14 @@ def main() -> int:
         default=None,
         help="Path to the CSV file, or '-' to read from stdin",
     )
+    parser.add_argument(
+        "-p",
+        "--path-column",
+        dest="path_column",
+        metavar="COLUMN",
+        default=None,
+        help="Treat COLUMN as a slash-separated path and drill by path segments",
+    )
     args = parser.parse_args()
     csv_path = args.csv_path
 
@@ -56,6 +64,7 @@ def main() -> int:
     app = HDVApp(
         source,
         source_name=source_name,
+        path_column=args.path_column,
         driver_class=driver_class,
     )
     app.run()
