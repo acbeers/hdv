@@ -32,7 +32,17 @@ def main() -> int:
         default=None,
         help="Treat COLUMN as a slash-separated path and drill by path segments",
     )
+    parser.add_argument(
+        "-s",
+        "--string-column",
+        dest="string_columns",
+        action="append",
+        default=None,
+        metavar="COLUMN",
+        help="Treat COLUMN as a regular string (disable path auto-detection for it); may be repeated",
+    )
     args = parser.parse_args()
+    string_columns = args.string_columns or []
     csv_path = args.csv_path
 
     use_stdin = False
@@ -65,6 +75,7 @@ def main() -> int:
         source,
         source_name=source_name,
         path_column=args.path_column,
+        string_columns=string_columns,
         driver_class=driver_class,
     )
     app.run()

@@ -42,6 +42,7 @@ class HDVApp(App[None]):
         source: str | Path | IO[str],
         source_name: str | None = None,
         path_column: str | None = None,
+        string_columns: list[str] | None = None,
         *args,
         **kwargs,
     ):
@@ -51,6 +52,7 @@ class HDVApp(App[None]):
             str(source) if not hasattr(source, "read") else "<stdin>"
         )
         self.path_column = path_column
+        self.string_columns = string_columns or []
         self.df = None
         self.dimension_columns: list[str] = []
         self.numeric_columns: list[str] = []
@@ -59,9 +61,17 @@ class HDVApp(App[None]):
 
     def on_mount(self) -> None:
         try:
-            self.df, self.dimension_columns, self.numeric_columns = load_and_classify(
-                self.source, path_column=self.path_column
+            (
+                self.df,
+                self.dimension_columns,
+                self.numeric_columns,
+                path_column_used,
+            ) = load_and_classify(
+                self.source,
+                path_column=self.path_column,
+                string_columns=self.string_columns,
             )
+            self.path_column = path_column_used
         except Exception as e:
             self.notify(f"Failed to load CSV: {e}", severity="error")
             return

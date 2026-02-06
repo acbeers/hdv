@@ -52,12 +52,34 @@ def _expand_path_column(
     return df, new_dims
 
 
+def _detect_path_column(
+    df: pd.DataFrame,
+    dimension_columns: list[str],
+    string_columns: list[str],
+) -> str | None:
+    """Return the first dimension column that looks like a path (contains '/' in some values),
+    and is not in string_columns. Returns None if none found.
+    """
+    for col in dimension_columns:
+        if col in string_columns:
+            continue
+        if col not in df.columns:
+            continue
+        has_slash = df[col].astype(str).str.contains("/", regex=False).any()
+        if has_slash:
+            return col
+    return None
+
+
 def load_and_classify(
     source: str | Path | IO[str],
     path_column: str | None = None,
-) -> tuple[pd.DataFrame, list[str], list[str]]:
-    """Load CSV from path or file-like and return (df, dimension_columns, numeric_columns).
+    string_columns: list[str] | None = None,
+) -> tuple[pd.DataFrame, list[str], list[str], str | None]:
+    """Load CSV from path or file-like and return (df, dimension_columns, numeric_columns, path_column_used).
     If path_column is set, that column is expanded into segment levels (path_0, path_1, ...).
+    Otherwise, a path column is auto-detected (first dimension with '/' in some value, not in string_columns).
+    string_columns: dimension columns to treat as regular strings (no path expansion).
     """
     df = pd.read_csv(source)
     numeric_columns: list[str] = []
@@ -68,11 +90,16 @@ def load_and_classify(
             numeric_columns.append(col)
     # Dimensions = non-numeric, in original column order
     dimension_columns = [c for c in df.columns if c not in numeric_columns]
+    str_cols = string_columns or []
+    if path_column is None:
+        path_column = _detect_path_column(df, dimension_columns, str_cols)
     if path_column:
         if path_column not in df.columns:
-            raise ValueError(f"Path column {path_column!r} not found in CSV columns: {list(df.columns)}")
+            raise ValueError(
+                f"Path column {path_column!r} not found in CSV columns: {list(df.columns)}"
+            )
         df, dimension_columns = _expand_path_column(df, path_column, dimension_columns)
-    return df, dimension_columns, numeric_columns
+    return df, dimension_columns, numeric_columns, path_column
 
 
 def aggregate_level(
