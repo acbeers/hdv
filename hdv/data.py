@@ -8,6 +8,43 @@ from typing import IO
 import pandas as pd
 
 
+def _path_segments(s: str) -> list[str]:
+    """Return list of non-empty path segments (leading/trailing slashes stripped)."""
+    return [x for x in str(s).strip("/").split("/") if x]
+
+
+def _common_path_prefix(values: list[str]) -> str:
+    """Return the longest common path prefix (by segments) for the given path strings.
+    E.g. ['/a/b/c', '/a/b/d', '/a/b'] -> 'a/b'. Returns '' if no common prefix.
+    """
+    if not values:
+        return ""
+    segs_list = [_path_segments(v) for v in values if pd.notna(v) and str(v).strip()]
+    if not segs_list:
+        return ""
+    common = segs_list[0]
+    for segs in segs_list[1:]:
+        n = 0
+        while n < len(common) and n < len(segs) and common[n] == segs[n]:
+            n += 1
+        common = common[:n]
+        if not common:
+            return ""
+    return "/".join(common)
+
+
+def _strip_path_prefix(value: str, prefix: str) -> str:
+    """Remove the given segment prefix from value. Returns value with prefix and following slash removed."""
+    if not prefix or pd.isna(value):
+        return str(value) if not pd.isna(value) else ""
+    val_segs = _path_segments(value)
+    pre_segs = _path_segments(prefix)
+    if pre_segs and val_segs[: len(pre_segs)] == pre_segs:
+        remainder = val_segs[len(pre_segs) :]
+        return "/".join(remainder) if remainder else ""
+    return str(value).strip("/") if isinstance(value, str) else str(value)
+
+
 def _expand_path_column(
     df: pd.DataFrame,
     path_column: str,
@@ -21,7 +58,7 @@ def _expand_path_column(
         return df, dimension_columns
     # Max depth = max number of segments in any cell
     def segments(s: str) -> list[str]:
-        return [x for x in str(s).strip("/").split("/") if x]
+        return _path_segments(s)
 
     depths = df[path_column].apply(lambda s: len(segments(s)))
     max_depth = int(depths.max()) if len(depths) else 0
@@ -98,6 +135,12 @@ def load_and_classify(
             raise ValueError(
                 f"Path column {path_column!r} not found in CSV columns: {list(df.columns)}"
             )
+        # Auto-remove common path prefix so all entries are relative
+        path_values = df[path_column].dropna().astype(str).tolist()
+        prefix = _common_path_prefix(path_values)
+        if prefix:
+            df = df.copy()
+            df[path_column] = df[path_column].apply(lambda v: _strip_path_prefix(v, prefix))
         df, dimension_columns = _expand_path_column(df, path_column, dimension_columns)
     return df, dimension_columns, numeric_columns, path_column
 
