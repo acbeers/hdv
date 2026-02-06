@@ -94,18 +94,24 @@ def _detect_path_column(
     dimension_columns: list[str],
     string_columns: list[str],
 ) -> str | None:
-    """Return the first dimension column that looks like a path (contains '/' in some values),
+    """Return the dimension column that looks most like a path (has the most '/' per entry on average),
     and is not in string_columns. Returns None if none found.
     """
+    best_col: str | None = None
+    best_mean_slashes: float = -1.0
     for col in dimension_columns:
         if col in string_columns:
             continue
         if col not in df.columns:
             continue
-        has_slash = df[col].astype(str).str.contains("/", regex=False).any()
-        if has_slash:
-            return col
-    return None
+        s = df[col].astype(str)
+        if not s.str.contains("/", regex=False).any():
+            continue
+        mean_slashes = s.str.count("/").mean()
+        if mean_slashes > best_mean_slashes:
+            best_mean_slashes = mean_slashes
+            best_col = col
+    return best_col
 
 
 def load_and_classify(
@@ -115,7 +121,7 @@ def load_and_classify(
 ) -> tuple[pd.DataFrame, list[str], list[str], str | None]:
     """Load CSV from path or file-like and return (df, dimension_columns, numeric_columns, path_column_used).
     If path_column is set, that column is expanded into segment levels (path_0, path_1, ...).
-    Otherwise, a path column is auto-detected (first dimension with '/' in some value, not in string_columns).
+    Otherwise, a path column is auto-detected (dimension with the most '/' per entry on average, not in string_columns).
     string_columns: dimension columns to treat as regular strings (no path expansion).
     """
     df = pd.read_csv(source)
