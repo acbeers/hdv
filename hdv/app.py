@@ -84,7 +84,7 @@ class HDVApp(App[None]):
         self._refresh_table()
         self.query_one(HDVDataTable).focus()
 
-    def _refresh_table(self) -> None:
+    def _refresh_table(self, restore_selection: str | None = None) -> None:
         table = self.query_one(HDVDataTable)
         table.clear(columns=True)
         self._current_rows = []
@@ -112,8 +112,14 @@ class HDVApp(App[None]):
                 num_vals.append(f"{v:.0f}" if isinstance(v, (int, float)) and v == int(v) else str(v))
             table.add_row(label, *num_vals, key=str(i))
         if rows:
+            target_row = 0
+            if restore_selection is not None:
+                for i, (label, _) in enumerate(rows):
+                    if (label or "") == (restore_selection or ""):
+                        target_row = i
+                        break
             try:
-                table.move_cursor(row=0, column=0)
+                table.move_cursor(row=target_row, column=0)
             except Exception:
                 pass
         # Update breadcrumb with drill path and current total
@@ -181,8 +187,9 @@ class HDVApp(App[None]):
     def action_back(self) -> None:
         if not self.path:
             return
+        restore_value = self.path[-1]
         self.path.pop()
-        self._refresh_table()
+        self._refresh_table(restore_selection=restore_value)
 
     def action_expand(self) -> None:
         level = len(self.path)
