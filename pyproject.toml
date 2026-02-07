@@ -18,3 +18,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["hdv"]
+
+[tool.hatch.build.targets.sdist]
+force-include = { "share/man/man1/hdv.1" = "share/man/man1/hdv.1" }

@@ -1,0 +1,82 @@
+.\" Automatically generated; do not edit
+.TH HDV 1 "February 2025" "hdv 0.1.0" "User Commands"
+.SH NAME
+hdv \- Hierarchical Data Viewer for CSV files
+.SH SYNOPSIS
+.B hdv
+[\fIOPTIONS\fR]
+[\fICSV_FILE\fR]
+.PP
+.B hdv
+[\fIOPTIONS\fR]
+\fI\- \fR
+.SH DESCRIPTION
+\fBhdv\fR is an interactive terminal application for exploring CSV data by
+drilling down through dimensions. Columns are automatically classified as
+numeric (summed when grouped) or non-numeric (dimensions for the hierarchy).
+.PP
+At the top level, the first dimension column is grouped and numeric columns
+are summed per value. Use the arrow keys to select a row and press Right to
+expand (drill into) the selected value and see the next dimension. Press Left
+to go back one level. A breadcrumb shows the current drill path.
+.PP
+If a column contains slash-separated paths (e.g. \fI/a/b/c\fR), it can be
+expanded into multiple hierarchy levels. Such a column is auto-detected, or
+you can specify it with \fB--path-column\fR.
+.SH OPTIONS
+.TP
+\fB\-p\fR \fICOLUMN\fR, \fB--path-column\fR=\fICOLUMN\fR
+Treat \fICOLUMN\fR as a slash-separated path and drill by path segments.
+.TP
+\fB\-s\fR \fICOLUMN\fR, \fB--string-column\fR=\fICOLUMN\fR
+Treat \fICOLUMN\fR as a regular string (disable path auto-detection for it).
+May be repeated.
+.TP
+\fB\-h\fR, \fB--help\fR
+Show help message and exit.
+.SH ARGUMENTS
+.TP
+\fICSV_FILE\fR
+Path to a CSV file. If omitted and stdin is not a TTY, reads CSV from stdin.
+.TP
+\fI\-\fR
+Read CSV from stdin (e.g. \fBcat data.csv | hdv -\fR).
+.SH KEYBOARD
+.TP
+\fB\(ua\fR / \fB\(da\fR
+Change selected row.
+.TP
+\fB\(->\fR
+Expand (drill into selected value).
+.TP
+\fB\(<-\fR
+Back (one level up).
+.TP
+\fBs\fR
+Toggle sort by dimension label vs numeric column.
+.TP
+\fBq\fR
+Quit.
+.SH EXAMPLES
+.TP
+\fBhdv sales.csv\fR
+View \fIsales.csv\fR interactively.
+.TP
+\fBcat data.csv | hdv\fR
+Read CSV from stdin.
+.TP
+\fBhdv -p path -s label data.csv\fR
+Use column \fIpath\fR for hierarchy; treat \fIlabel\fR as a plain string.
+.SH EXIT STATUS
+.TP
+\fB0\fR
+Success.
+.TP
+\fB1\fR
+Error (missing file, invalid arguments, etc.).
+.SH SEE ALSO
+Full documentation: https://github.com/yourusername/hdv
+.SH AUTHORS
+HDV - Hierarchical Data Viewer
+.SH COPYRIGHT
+MIT License

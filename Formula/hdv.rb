@@ -13,6 +13,7 @@ class Hdv < Formula
     venv = virtualenv_create(libexec, "python3.10")
     venv.pip_install buildpath
     bin.install_symlink libexec/"bin/hdv"
+    man1.install "share/man/man1/hdv.1"
   end
 
   test do
