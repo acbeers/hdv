@@ -41,8 +41,19 @@ def main() -> int:
         metavar="COLUMN",
         help="Treat COLUMN as a regular string (disable path auto-detection for it); may be repeated",
     )
+    parser.add_argument(
+        "-c",
+        "--columns",
+        dest="columns",
+        metavar="COL1,COL2,...",
+        default=None,
+        help="Comma-separated list of columns to show (in order); unlisted columns are hidden",
+    )
     args = parser.parse_args()
     string_columns = args.string_columns or []
+    column_filter = None
+    if args.columns is not None:
+        column_filter = [c.strip() for c in args.columns.split(",") if c.strip()]
     csv_path = args.csv_path
 
     use_stdin = False
@@ -76,6 +87,7 @@ def main() -> int:
         source_name=source_name,
         path_column=args.path_column,
         string_columns=string_columns,
+        column_filter=column_filter,
         driver_class=driver_class,
     )
     app.run()

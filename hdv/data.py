@@ -118,11 +118,13 @@ def load_and_classify(
     source: str | Path | IO[str],
     path_column: str | None = None,
     string_columns: list[str] | None = None,
+    column_filter: list[str] | None = None,
 ) -> tuple[pd.DataFrame, list[str], list[str], str | None]:
     """Load CSV from path or file-like and return (df, dimension_columns, numeric_columns, path_column_used).
     If path_column is set, that column is expanded into segment levels (path_0, path_1, ...).
     Otherwise, a path column is auto-detected (dimension with the most '/' per entry on average, not in string_columns).
     string_columns: dimension columns to treat as regular strings (no path expansion).
+    column_filter: if set, only these columns are kept (in this order); others are never displayed.
     """
     df = pd.read_csv(source)
     numeric_columns: list[str] = []
@@ -133,6 +135,7 @@ def load_and_classify(
             numeric_columns.append(col)
     # Dimensions = non-numeric, in original column order
     dimension_columns = [c for c in df.columns if c not in numeric_columns]
+
     str_cols = string_columns or []
     if path_column is None:
         path_column = _detect_path_column(df, dimension_columns, str_cols)
@@ -148,6 +151,26 @@ def load_and_classify(
             df = df.copy()
             df[path_column] = df[path_column].apply(lambda v: _strip_path_prefix(v, prefix))
         df, dimension_columns = _expand_path_column(df, path_column, dimension_columns)
+
+    if column_filter:
+        # Build allowed list: for each name in filter, include it (or path_column_0, path_column_1, ...
+        # if it's the path column that was expanded); preserve filter order
+        allowed: list[str] = []
+        for c in column_filter:
+            if c == path_column and path_column:
+                # Include all expanded path levels (path_column_0, path_column_1, ...)
+                path_cols = [col for col in dimension_columns if col.startswith(path_column + "_")]
+                allowed.extend(path_cols)
+            elif c in df.columns:
+                allowed.append(c)
+        if not allowed:
+            raise ValueError(
+                f"None of the specified columns {column_filter!r} exist in CSV: {list(df.columns)}"
+            )
+        df = df[allowed].copy()
+        dimension_columns = [c for c in allowed if c in dimension_columns]
+        numeric_columns = [c for c in allowed if c in numeric_columns]
+
     return df, dimension_columns, numeric_columns, path_column
 
 

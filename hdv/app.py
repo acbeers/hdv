@@ -47,6 +47,7 @@ class HDVApp(App[None]):
         source_name: str | None = None,
         path_column: str | None = None,
         string_columns: list[str] | None = None,
+        column_filter: list[str] | None = None,
         *args,
         **kwargs,
     ):
@@ -57,6 +58,7 @@ class HDVApp(App[None]):
         )
         self.path_column = path_column
         self.string_columns = string_columns or []
+        self.column_filter = column_filter
         self.df = None
         self.dimension_columns: list[str] = []
         self.numeric_columns: list[str] = []
@@ -75,6 +77,7 @@ class HDVApp(App[None]):
                 self.source,
                 path_column=self.path_column,
                 string_columns=self.string_columns,
+                column_filter=self.column_filter,
             )
             self.path_column = path_column_used
         except Exception as e:

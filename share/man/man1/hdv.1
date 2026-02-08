@@ -32,6 +32,9 @@ Treat \fICOLUMN\fR as a slash-separated path and drill by path segments.
 Treat \fICOLUMN\fR as a regular string (disable path auto-detection for it).
 May be repeated.
 .TP
+\fB\-c\fR \fICOL1,COL2,...\fR, \fB--columns\fR=\fICOL1,COL2,...\fR
+Comma-separated list of columns to show (in order). Unlisted columns are hidden.
+.TP
 \fB\-h\fR, \fB--help\fR
 Show help message and exit.
 .SH ARGUMENTS
@@ -67,6 +70,9 @@ Read CSV from stdin.
 .TP
 \fBhdv -p path -s label data.csv\fR
 Use column \fIpath\fR for hierarchy; treat \fIlabel\fR as a plain string.
+.TP
+\fBhdv -c name,file,line data.csv\fR
+Show only columns \fIname\fR, \fIfile\fR, and \fIline\fR in that order.
 .SH EXIT STATUS
 .TP
 \fB0\fR
