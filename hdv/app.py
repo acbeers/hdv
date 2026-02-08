@@ -61,6 +61,7 @@ class HDVApp(App[None]):
         self.dimension_columns: list[str] = []
         self.numeric_columns: list[str] = []
         self.path: list[str] = []  # current drill-down path (value per level)
+        self.level: int = 0  # display level (can exceed len(path) when skipping path-segment drill)
         self.sort_by_numeric: bool = False  # False = by dimension label, True = by numeric column
 
     def on_mount(self) -> None:
@@ -88,7 +89,7 @@ class HDVApp(App[None]):
         table = self.query_one(HDVDataTable)
         table.clear(columns=True)
         self._current_rows = []
-        level = len(self.path)
+        level = self.level
         if level >= len(self.dimension_columns):
             return
         dim_col = self.dimension_columns[level]
@@ -96,7 +97,11 @@ class HDVApp(App[None]):
         columns = [dim_col] + agg_columns
         table.add_columns(*columns)
         rows = aggregate_level(
-            self.df, self.dimension_columns, self.numeric_columns, self.path
+            self.df,
+            self.dimension_columns,
+            self.numeric_columns,
+            self.path,
+            level=level,
         )
         # Sort: by dimension label or by first numeric column
         if self.sort_by_numeric and agg_columns:
@@ -184,24 +189,71 @@ class HDVApp(App[None]):
         """Scroll the table list up by a page (b)."""
         self.query_one(HDVDataTable).run_action("page_up")
 
+    def _last_path_segment_level(self) -> int | None:
+        """Index of the last dimension that is a path segment (path_column_0, path_column_1, ...), or None."""
+        if not self.path_column:
+            return None
+        idx: int | None = None
+        for i, dim in enumerate(self.dimension_columns):
+            if dim.startswith(self.path_column + "_"):
+                idx = i
+        return idx
+
     def action_back(self) -> None:
+        if not self.path and self.level <= 0:
+            return
+        # If we're ahead of path (skipped redundant path-segment levels), undo the last drill
+        # so we land at the level where we had real choices, not the redundant level we skipped
+        if self.level > len(self.path):
+            restore_value = self.path[-1]
+            self.path.pop()
+            self.level = len(self.path)
+            self._refresh_table(restore_selection=restore_value)
+            return
         if not self.path:
             return
         restore_value = self.path[-1]
         self.path.pop()
+        self.level = len(self.path)
         self._refresh_table(restore_selection=restore_value)
 
+    def _is_redundant_path_level(self, level: int) -> bool:
+        """True if level is a path-segment that would show only one value equal to path[-1] (no new info)."""
+        if not self.path or level >= len(self.dimension_columns):
+            return False
+        dim = self.dimension_columns[level]
+        if not dim.startswith(self.path_column + "_"):
+            return False
+        rows = aggregate_level(
+            self.df,
+            self.dimension_columns,
+            self.numeric_columns,
+            self.path,
+            level=level,
+        )
+        return len(rows) == 1 and (rows[0][0] or "") == (self.path[-1] or "")
+
     def action_expand(self) -> None:
-        level = len(self.path)
+        level = self.level
         # Can't expand when already at the last dimension (no further levels)
         # In that case, Right should move to the next column instead
         if level >= len(self.dimension_columns) - 1:
             self.query_one(HDVDataTable).run_action("cursor_right")
             return
+        last_path_seg = self._last_path_segment_level()
+        # When at the last path-segment dimension, skip drilling into it and show the next dimension for the current path
+        if last_path_seg is not None and level == last_path_seg and level < len(self.dimension_columns) - 1:
+            self.level = level + 1
+            self._refresh_table()
+            return
         val = self._get_selected_dim_value()
         if val is None:
             return
         self.path.append(val)
+        self.level = len(self.path)
+        # Skip redundant path-segment levels (short paths that repeat the same value)
+        while self._is_redundant_path_level(self.level) and self.level < len(self.dimension_columns) - 1:
+            self.level += 1
         self._refresh_table()
 
     def compose(self) -> ComposeResult:

@@ -156,18 +156,23 @@ def aggregate_level(
     dim_columns: list[str],
     numeric_columns: list[str],
     path: list[str],
+    level: int | None = None,
 ) -> list[tuple[str, dict[str, float]]]:
     """
-    For the current path (filter), group by the next dimension and sum numerics.
+    For the current path (filter), group by the dimension at level and sum numerics.
     Returns list of (dim_value, {num_col: sum, ...}).
+    If level is given and level > len(path), filters only by path[0:len(path)]
+    (so the next dimension is shown for the whole current path, skipping path-segment drill).
     """
-    level = len(path)
+    if level is None:
+        level = len(path)
     if level >= len(dim_columns):
         return []
     dim_col = dim_columns[level]
-    # Filter by path
+    # Filter by path (only the path elements we have)
     subset = df
-    for i, v in enumerate(path):
+    for i in range(min(level, len(path))):
+        v = path[i]
         subset = subset[subset[dim_columns[i]].astype(str) == str(v)]
     if subset.empty:
         return []
