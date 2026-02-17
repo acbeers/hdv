@@ -12,7 +12,15 @@ Interactive terminal app to explore CSV data by drilling down through dimensions
 
 ## Install
 
-### With uv (recommended)
+### With Homebrew (recommended)
+
+```bash
+brew tap acbeers/tap
+brew update
+brew install hdv
+```
+
+### With uv from source
 
 ```bash
 uv tool install hdv
@@ -28,34 +36,6 @@ pip install hdv
 hdv file.csv
 ```
 
-### Homebrew (when published)
-
-A Homebrew formula can install the package via `pip` in a dedicated venv, or use a bottled wheel. Example formula (tap):
-
-```ruby
-class Hdv < Formula
-  desc "Hierarchical Data Viewer for CSV"
-  homepage "https://github.com/yourusername/hdv"
-  url "https://files.pythonhosted.org/packages/.../hdv-0.1.0.tar.gz"
-  sha256 "..."
-
-  depends_on "python@3.10"
-
-  def install
-    venv = virtualenv_create(libexec, "python3.10")
-    venv.pip_install resources
-    venv.pip_install_and_link buildpath
-    bin.install_symlink libexec/"bin/hdv"
-  end
-
-  test do
-    assert_match "usage", shell_output("#{bin}/hdv --help")
-  end
-end
-```
-
-Or use `brew install hdv` once the formula is in a tap.
-
 ## Usage
 
 ```bash
@@ -68,6 +48,7 @@ cat data.csv | hdv -
 - **↑ / ↓** — Change selected row  
 - **→** — Expand (drill into selected value)  
 - **←** — Back (one level up)  
+- **s** - Change sorting between numeric and non-numeric columns
 - **q** — Quit  
 
 ## Example
