@@ -9,6 +9,7 @@ Interactive terminal app to explore CSV data by drilling down through dimensions
 - **Drill down**: Move with **↑/↓**, press **→** to expand the selected row and see the next dimension (with aggregates filtered to that selection).
 - **Go back**: Press **←** to move up one level.
 - **Breadcrumb**: Shows current path (e.g. `North / Sales`).
+- **Path columns**: Columns that look like file paths (e.g. a/b/c) can have the components treated as columns
 
 ## Install
 
@@ -45,21 +46,32 @@ cat data.csv | hdv
 cat data.csv | hdv -
 ```
 
-- **↑ / ↓** — Change selected row  
-- **→** — Expand (drill into selected value)  
-- **←** — Back (one level up)  
+Keyboard commands:
+
+- **↑ / ↓** — Change selected row
+- **→** — Expand (drill into selected value)
+- **←** — Back (one level up)
 - **s** - Change sorting between numeric and non-numeric columns
-- **q** — Quit  
+- **q** — Quit
+
+Options:
+
+| Option                      | Description                                                                            |
+| --------------------------- | -------------------------------------------------------------------------------------- |
+| -h, --help                  | Show help                                                                              |
+| -p, --path-column COLUMN    | Treat COLUMN as a slash-separated path and drill by path segments                      |
+| -s, --string-column COLUMN  | Treat COLUMN as a regular string (disable path auto-detection for it); may be repeated |
+| -c, --columns COL1,COL2,... | Comma-separated list of columns to show (in order); unlisted columns are hidden        |
 
 ## Example
 
 Given `sample.csv`:
 
-| region | department | product | revenue | units |
-|--------|------------|---------|---------|-------|
-| North  | Sales      | Widget A| 1000    | 10    |
-| North  | Sales      | Widget B| 1500   | 15    |
-| ...    | ...        | ...     | ...     | ...   |
+| region | department | product  | revenue | units |
+| ------ | ---------- | -------- | ------- | ----- |
+| North  | Sales      | Widget A | 1000    | 10    |
+| North  | Sales      | Widget B | 1500    | 15    |
+| ...    | ...        | ...      | ...     | ...   |
 
 - Top level: regions (North, South) with total revenue and units.
 - Expand **North** → departments (Sales, Support) with totals for North only.
