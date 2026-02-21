@@ -244,8 +244,14 @@ class HDVApp(App[None]):
             self.query_one(HDVDataTable).run_action("cursor_right")
             return
         last_path_seg = self._last_path_segment_level()
-        # When at the last path-segment dimension, skip drilling into it and show the next dimension for the current path
-        if last_path_seg is not None and level == last_path_seg and level < len(self.dimension_columns) - 1:
+        # When at the last path-segment dimension, skip drilling only if this level has a single value (redundant).
+        # If there are multiple values (e.g. 8 files), drill into the selected one so the next level is scoped to that file.
+        if (
+            last_path_seg is not None
+            and level == last_path_seg
+            and level < len(self.dimension_columns) - 1
+            and self._is_redundant_path_level(level)
+        ):
             self.level = level + 1
             self._refresh_table()
             return
