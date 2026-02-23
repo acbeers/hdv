@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 
+from . import __version__
 from .app import HDVApp
 from .driver import TTYInputDriver
 
@@ -48,6 +49,12 @@ def main() -> int:
         metavar="COL1,COL2,...",
         default=None,
         help="Comma-separated list of columns to show (in order); unlisted columns are hidden",
+    )
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     args = parser.parse_args()
     string_columns = args.string_columns or []
