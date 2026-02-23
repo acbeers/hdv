@@ -20,6 +20,13 @@ build-backend = "hatchling.build"
 source = "vcs"
 fallback-version = "0.0.0+dev"
 
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+version_scheme = "no-guess-dev"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "hdv/_version.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["hdv"]
 
